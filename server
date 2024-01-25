@@ -1,0 +1,45 @@
+import socket
+
+host = "192.168.2.68"
+port = 9000
+
+mySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+try:
+    mySoc.bind((host, port))
+except socket.error:
+    print("non je ne m'allume pas")
+    quit()
+
+nb_j = int(input("combien de joueur?\n"))
+
+
+def sendmsg(message, connexion):
+    connexion.send(message.encode("Utf8"))
+    connexion.recv(1024).decode("Utf8")
+
+
+mySoc.listen(nb_j)
+
+joueurs = []
+for i in range(nb_j):
+    connexion, adresse = mySoc.accept()
+    joueurs.append([connexion, adresse])
+    joueurs[i][0].send((str(i) + " " + str(nb_j)).encode("Utf8"))
+    joueurs[i].append(joueurs[i][0].recv(1024).decode("Utf8"))
+
+for i in range(nb_j):
+    for j in range(nb_j):
+        sendmsg((joueurs[j][2] + " " + str(j)), joueurs[i][0])
+print("all know\n")
+
+while True:
+    for i in range(nb_j):
+        while msg == "non":
+            msg = joueurs[i][0].recv(1024).decode("Utf8")
+            for j in range(nb_j):
+                if not i == j:
+                    sendmsg("non", joueurs[j][0])
+        for j in range(nb_j):
+            if not i == j:
+                sendmsg(msg, joueurs[j][0])
