@@ -1,4 +1,5 @@
 import pygame
+from random import randint
 import socket
 
 screen_size = (960, 540)
@@ -9,8 +10,18 @@ cartes = {1: "1", 2: "2", 3: "2 3", 4: "3", 5: "4", 6: "5", 7: "6", 8: "6", 9: "
 nb_cartes = {1: 6, 2: 6, 3: 6, 4: 6, 5: 6, 6: 6, 7: 4, 8: 4, 9: 4, 10: 6, 11: 6, 12: 6, 13: 6, 14: 6, 15: 6}
 msg = ""
 pseudo = input("ton pseudo?\n")
-host = "192.168.2.68"
+host = "localhost"
 port = 9000
+autourde = 0
+des1 = 0
+des2 = 0
+id_carte_achat = 0
+des_lancer = False
+achat = False
+endturn = False
+pouvoir = False
+double_des = False
+nb_bonus_modif = 0
 
 mySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -26,6 +37,7 @@ mySoc.send(pseudo.encode("Utf8"))
 nb = int(nb)
 nb_j = int(nb_j)
 joueurs = {}
+print(autourde, nb)
 
 
 def recevoirmsg():
@@ -34,9 +46,14 @@ def recevoirmsg():
     return m
 
 
+def sendmsg(message):
+    message += "/"
+    mySoc.send(message.encode("Utf8"))
+
+
 for i in range(nb_j):
-    pseudo, nb = recevoirmsg().split()
-    joueurs[int(nb)] = {"cartes": {1: 1, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}, "bonus": [False, False, False, False], "pseudo": pseudo}
+    pseudo, nob = recevoirmsg().split()
+    joueurs[int(nob)] = {"cartes": {1: 1, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}, "bonus": [False, False, False, False], "bonus actif": [False, False, False, False], "pseudo": pseudo}
 print("all know\n")
 
 
@@ -47,14 +64,94 @@ def affichage():
 
 
 def input():
+    global des_lancer, des1, des2, endturn, pouvoir, nb_bonus_modif
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                quit()
+            elif event.key == pygame.K_LEFT:
+                des_lancer = True
+                des1 = randint(1, 6)
+                if double_des:
+                    des2 = randint(1, 6)
+                else:
+                    des2 = 0
+            elif event.key == pygame.K_RIGHT:
+                endturn = True
+            elif event.key == pygame.K_0:
+                pouvoir = True
+                nb_bonus_modif = 0
+            elif event.key == pygame.K_1:
+                pouvoir = True
+                nb_bonus_modif = 1
+            elif event.key == pygame.K_2:
+                pouvoir = True
+                nb_bonus_modif = 2
+            elif event.key == pygame.K_3:
+                pouvoir = True
+                nb_bonus_modif = 3
+
+
+def inputnonjoueur():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            quit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                quit()
 
 
 while True:
     deltatime = clock.tick() / 1000
 
     affichage()
-    input()
+
+    if autourde != nb:
+        messege = recevoirmsg()
+        for msg in messege.split("/"):
+            if not msg == "non" and not msg == "":
+                action, valeur = msg.split(":")
+                if action == "des lancer":
+                    des1, des2 = valeur.split()
+                    des1 = int(des1)
+                    des2 = int(des2)
+                    print(des1, des2)
+                elif action == "bonus":
+                    print(joueurs[autourde]["cartes"])
+                    joueurs[autourde]["bonus actif"][int(valeur)] = not joueurs[autourde]["bonus actif"][int(valeur)]
+                    print(joueurs[autourde]["cartes"])
+                elif action == "achat":
+                    nb_cartes[int(valeur)] -= 1
+                    print(joueurs[autourde]["cartes"])
+                    joueurs[autourde]["cartes"][int(valeur)] += 1
+                    print(joueurs[autourde]["cartes"])
+                elif action == "end":
+                    autourde += 1
+                    if autourde >= nb_j:
+                        autourde = 0
+                    if autourde == nb:
+                        des_lancer = False
+                        achat = False
+                        endturn = False
+                        pouvoir = False
+                print(msg)
+    else:
+        input()
+        if des_lancer or achat or endturn:
+            if des_lancer:
+                sendmsg("des lancer:" + str(des1) + " " + str(des2))
+            elif pouvoir:
+                sendmsg("bonus:" + str(nb_bonus_modif))
+            elif achat:
+                sendmsg("achat:" + str(id_carte_achat))
+            elif endturn:
+                sendmsg("end:")
+        else:
+            sendmsg("non")
