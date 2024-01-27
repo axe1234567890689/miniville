@@ -2,26 +2,55 @@ import pygame
 from random import randint
 import socket
 
-screen_size = (960, 540)
-screen = pygame.display.set_mode(screen_size)
-clock = pygame.time.Clock()
-
+screen_size = (1920, 1080)
+screen_center = (screen_size[0] / 2, screen_size[1] / 2)
 cartes = {1: "1", 2: "2", 3: "2 3", 4: "3", 5: "4", 6: "5", 7: "6", 8: "6", 9: "6", 10: "7", 11: "8", 12: "9", 13: "9 10", 14: "10", 15: "11 12"}
 nb_cartes = {1: 6, 2: 6, 3: 6, 4: 6, 5: 6, 6: 6, 7: 4, 8: 4, 9: 4, 10: 6, 11: 6, 12: 6, 13: 6, 14: 6, 15: 6}
+prix_cartes = {1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 6, 8: 7, 9: 8, 10: 5, 11: 3, 12: 6, 13: 3, 14: 3, 15: 2}
+prix_spe = [4, 10, 16, 22]
+num_pice = [1, 5, 10]
+nom_cartes = ["back", "Champs de ble", "Ferme", "Boulangerie", "Cafe", "Superette", "Foret", "Stade", "Chaine de television", "Centre d'affaires", "Fromagerie", "Fabrique de meubles", "Mine", "Restaurant", "Verger", "Marche de fruits et legumes"]
+nom_cartes_spe = ["gare", "Centre commercial", "Parc d'attraction", "Tour radio"]
+Images = {"piece": {"face": [], "pile": []},
+          "cartes": [],
+          "cartes spe": {" face": [], " dos": []}}
 msg = ""
 pseudo = input("ton pseudo?\n")
-host = "localhost"
+screen = pygame.display.set_mode(screen_size, vsync=1)
+clock = pygame.time.Clock()
+pygame.display.set_caption(pseudo)
+host = "192.168.2.68"
 port = 9000
 autourde = 0
 des1 = 0
 des2 = 0
+carte_cible = 0
+carte_cible_spe = False
 id_carte_achat = 0
 des_lancer = False
+achatpouvoir = False
 achat = False
 endturn = False
 pouvoir = False
 double_des = False
+good = False
+relancer = False
+lancer = False
 nb_bonus_modif = 0
+for type in Images:
+    if type == "cartes spe":
+        for plus in Images[type]:
+            for name in nom_cartes_spe:
+                Images[type][plus].append(pygame.image.load("images/" + str(type) + "/" + name + plus + ".png"))
+                Images[type][plus][-1] = pygame.transform.scale(Images[type][plus][-1], (97, 150))
+    elif type == "piece":
+        for plus in Images[type]:
+            for name in num_pice:
+                Images[type][plus].append(pygame.image.load("images/" + str(type) + "/piece" + str(name) + plus + ".png"))
+    elif type == "cartes":
+        for name in nom_cartes:
+            Images[type].append(pygame.image.load("images/" + str(type) + "/" + name + ".png"))
+            Images[type][-1] = pygame.transform.scale(Images[type][-1], (97, 150))
 
 mySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -53,48 +82,113 @@ def sendmsg(message):
 
 for i in range(nb_j):
     pseudo, nob = recevoirmsg().split()
-    joueurs[int(nob)] = {"cartes": {1: 1, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}, "bonus": [False, False, False, False], "bonus actif": [False, False, False, False], "pseudo": pseudo}
+    joueurs[int(nob)] = {"cartes": {1: 1, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}, "bonus": [False, False, False, False], "bonus actif": [False, False, False, False], "pseudo": pseudo, "argent": 3}
 print("all know\n")
 
 
 def affichage():
-    screen.fill((0, 0, 0))
+    global carte_cible, mouse_pos, carte_cible_spe
+
+    screen.fill((214, 249, 255))
+
+    y = screen_center[1] - 300
+    x = screen_center[0] - 250
+    index = 0
+    i = 0
+    carte_cible = 0
+    carte_cible_spe = False
+    for image in Images["cartes"]:
+        if not i == 0:
+            if nb_cartes[index] <= 0:
+                screen.blit(Images["cartes"][0], (x, y))
+            else:
+                for j in range(nb_cartes[index]):
+                    screen.blit(image, (x, y))
+                    y += 10
+                y -= 10 * nb_cartes[index]
+                if x < mouse_pos[0] < x + 100 and y < mouse_pos[1] < y + 200:
+                    carte_cible = index
+            x += 100
+        if i == 5:
+            i = 0
+            y += 200
+            x = screen_center[0] - 250
+        i += 1
+        index += 1
+    index = 0
+    x = 200
+    y = screen_size[1] - 300
+    while index < 4:
+        if joueurs[autourde]["bonus"][index]:
+            screen.blit(Images["cartes spe"][" face"][index], (x, y))
+        else:
+            screen.blit(Images["cartes spe"][" dos"][index], (x, y))
+        if x < mouse_pos[0] < x + 100 and y < mouse_pos[1] < y + 200:
+            carte_cible_spe = True
+            carte_cible = index + 1
+        x += 100
+        index += 1
+    x = 200
+    y = screen_size[1] - 150
+    for nbimage in joueurs[nb]["cartes"]:
+        if joueurs[nb]["cartes"][nbimage] != 0:
+            for i in range(joueurs[nb]["cartes"][nbimage]):
+                screen.blit(Images["cartes"][nbimage], (x, y))
+                x += 5
+            x += 90
 
     pygame.display.flip()
 
 
 def input():
-    global des_lancer, des1, des2, endturn, pouvoir, nb_bonus_modif
+    global des_lancer, des1, des2, endturn, pouvoir, nb_bonus_modif, good, lancer, relancer, carte_cible, carte_cible_spe, achat, id_carte_achat, achatpouvoir
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                if not carte_cible == 0:
+                    if not carte_cible_spe:
+                        if joueurs[autourde]["argent"] >= prix_cartes[carte_cible] and nb_cartes[carte_cible] > 0:
+                            achat = True
+                            joueurs[autourde]["argent"] += prix_cartes[carte_cible]
+                            nb_cartes[carte_cible] -= 1
+                            joueurs[autourde]["cartes"][carte_cible] += 1
+                            id_carte_achat = carte_cible
+                    else:
+                        carte_cible -= 1
+                        print(carte_cible)
+                        if joueurs[autourde]["argent"] >= prix_spe[carte_cible] and not joueurs[autourde]["bonus"][carte_cible]:
+                            achatpouvoir = True
+                            joueurs[autourde]["argent"] += prix_spe[carte_cible]
+                            joueurs[autourde]["bonus"][carte_cible] = True
+                            id_carte_achat = carte_cible
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 quit()
             elif event.key == pygame.K_LEFT:
                 des_lancer = True
-                des1 = randint(1, 6)
-                if double_des:
-                    des2 = randint(1, 6)
-                else:
-                    des2 = 0
+                if not lancer:
+                    lancer = True
+                    des1 = randint(1, 6)
+                    if double_des:
+                        des2 = randint(1, 6)
+                    else:
+                        des2 = 0
+                elif not relancer and joueurs[nb]["bonus actif"][3]:
+                    relancer = True
+                    des1 = randint(1, 6)
+                    if double_des:
+                        des2 = randint(1, 6)
+                    else:
+                        des2 = 0
             elif event.key == pygame.K_RIGHT:
                 endturn = True
-            elif event.key == pygame.K_0:
-                pouvoir = True
-                nb_bonus_modif = 0
-            elif event.key == pygame.K_1:
-                pouvoir = True
-                nb_bonus_modif = 1
-            elif event.key == pygame.K_2:
-                pouvoir = True
-                nb_bonus_modif = 2
-            elif event.key == pygame.K_3:
-                pouvoir = True
-                nb_bonus_modif = 3
+            elif event.key == pygame.K_KP_4:
+                good = True
 
 
 def inputnonjoueur():
@@ -109,29 +203,30 @@ def inputnonjoueur():
 
 
 while True:
+    mouse_pos = pygame.mouse.get_pos()
+
     deltatime = clock.tick() / 1000
 
     affichage()
 
     if autourde != nb:
-        messege = recevoirmsg()
-        for msg in messege.split("/"):
+        inputnonjoueur()
+        message = recevoirmsg()
+        for msg in message.split("/"):
             if not msg == "non" and not msg == "":
                 action, valeur = msg.split(":")
                 if action == "des lancer":
                     des1, des2 = valeur.split()
                     des1 = int(des1)
                     des2 = int(des2)
-                    print(des1, des2)
                 elif action == "bonus":
-                    print(joueurs[autourde]["cartes"])
                     joueurs[autourde]["bonus actif"][int(valeur)] = not joueurs[autourde]["bonus actif"][int(valeur)]
-                    print(joueurs[autourde]["cartes"])
+                elif action == "achat bonus":
+                    joueurs[autourde]["bonus"][int(valeur)] = True
+                    joueurs[autourde]["argent"] += prix_spe[int(valeur)]
                 elif action == "achat":
                     nb_cartes[int(valeur)] -= 1
-                    print(joueurs[autourde]["cartes"])
                     joueurs[autourde]["cartes"][int(valeur)] += 1
-                    print(joueurs[autourde]["cartes"])
                 elif action == "end":
                     autourde += 1
                     if autourde >= nb_j:
@@ -141,17 +236,33 @@ while True:
                         achat = False
                         endturn = False
                         pouvoir = False
-                print(msg)
+                        good = False
     else:
         input()
-        if des_lancer or achat or endturn:
+        if des_lancer or achat or endturn or pouvoir:
             if des_lancer:
                 sendmsg("des lancer:" + str(des1) + " " + str(des2))
+                des_lancer = False
             elif pouvoir:
                 sendmsg("bonus:" + str(nb_bonus_modif))
+                pouvoir = False
+            elif achatpouvoir:
+                sendmsg("achat bonus:" + str(nb_bonus_modif))
+                pouvoir = False
+            elif good:
+                sendmsg("good:")
+                good = False
             elif achat:
                 sendmsg("achat:" + str(id_carte_achat))
+                achat = False
             elif endturn:
-                sendmsg("end:")
+                if not joueurs[nb]["bonus actif"][2]:
+                    sendmsg("end:")
+                    autourde += 1
+                    if autourde >= nb_j:
+                        autourde = 0
+        else:
+            sendmsg("non")
+
         else:
             sendmsg("non")
