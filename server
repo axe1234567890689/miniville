@@ -1,6 +1,6 @@
 import socket
 
-host = "localhost"
+host = "192.168.2.68"
 port = 9000
 
 mySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,12 +35,12 @@ print("all know\n")
 
 while True:
     for i in range(nb_j):
-        msg = "non"
-        while msg == "non":
-            msg = joueurs[i][0].recv(1024).decode("Utf8")
+        boucle = True
+        while boucle:
+            message = joueurs[i][0].recv(1024).decode("Utf8")
             for j in range(nb_j):
                 if not i == j:
-                    sendmsg(msg, joueurs[j][0])
-        for j in range(nb_j):
-            if not i == j:
-                sendmsg(msg, joueurs[j][0])
+                    sendmsg(message, joueurs[j][0])
+            for msg in message.split("/"):
+                if msg == "end:":
+                    boucle = False
