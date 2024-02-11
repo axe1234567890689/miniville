@@ -1,95 +1,71 @@
-import pygame
-from random import randint
-import socket
-
-screen_size = (1920, 1080)
-screen_center = (screen_size[0] / 2, screen_size[1] / 2)
-cartes = {1: "1", 2: "2", 3: "2 3", 4: "3", 5: "4", 6: "5", 7: "6", 8: "6", 9: "6", 10: "7", 11: "8", 12: "9", 13: "9 10", 14: "10", 15: "11 12"}
-nb_cartes = {1: 6, 2: 6, 3: 6, 4: 6, 5: 6, 6: 6, 7: 4, 8: 4, 9: 4, 10: 6, 11: 6, 12: 6, 13: 6, 14: 6, 15: 6}
-prix_cartes = {1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 6, 8: 7, 9: 8, 10: 5, 11: 3, 12: 6, 13: 3, 14: 3, 15: 2}
-prix_spe = [4, 10, 16, 22]
-num_pice = [1, 5, 10]
-nom_cartes = ["back", "Champs de ble", "Ferme", "Boulangerie", "Cafe", "Superette", "Foret", "Stade", "Chaine de television", "Centre d'affaires", "Fromagerie", "Fabrique de meubles", "Mine", "Restaurant", "Verger", "Marche de fruits et legumes"]
-nom_cartes_spe = ["gare", "Centre commercial", "Parc d'attraction", "Tour radio"]
-Images = {"piece": {"face": [], "pile": []},
-          "cartes": [],
-          "cartes spe": {" face": [], " dos": []}}
-msg = ""
-pseudo = input("ton pseudo?\n")
-screen = pygame.display.set_mode(screen_size, vsync=1)
-clock = pygame.time.Clock()
-pygame.display.set_caption(pseudo)
-host = "192.168.2.68"
-port = 9000
-autourde = 0
-des1 = 0
-des2 = 0
-carte_cible = 0
-carte_cible_spe = False
-id_carte_achat = 0
-des_lancer = False
-achatpouvoir = False
-achat = False
-endturn = False
-pouvoir = False
-double_des = False
-good = False
-relancer = False
-lancer = False
-nb_bonus_modif = 0
-for type in Images:
-    if type == "cartes spe":
-        for plus in Images[type]:
-            for name in nom_cartes_spe:
-                Images[type][plus].append(pygame.image.load("images/" + str(type) + "/" + name + plus + ".png"))
-                Images[type][plus][-1] = pygame.transform.scale(Images[type][plus][-1], (97, 150))
-    elif type == "piece":
-        for plus in Images[type]:
-            for name in num_pice:
-                Images[type][plus].append(pygame.image.load("images/" + str(type) + "/piece" + str(name) + plus + ".png"))
-    elif type == "cartes":
-        for name in nom_cartes:
-            Images[type].append(pygame.image.load("images/" + str(type) + "/" + name + ".png"))
-            Images[type][-1] = pygame.transform.scale(Images[type][-1], (97, 150))
-
-mySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-try:
-    mySoc.connect((host, port))
-    print("réussite de connexion avec le serveur")
-except socket.error:
-    print("ereur de connexion avec le serveur")
-    quit()
-
-nb, nb_j = mySoc.recv(1024).decode("Utf8").split()
-mySoc.send(pseudo.encode("Utf8"))
-nb = int(nb)
-nb_j = int(nb_j)
-joueurs = {}
-print(autourde, nb)
-
-
-def recevoirmsg():
-    m = mySoc.recv(1024).decode("Utf8")
-    mySoc.send("0".encode("Utf8"))
-    return m
-
-
-def sendmsg(message):
-    message += "/"
-    mySoc.send(message.encode("Utf8"))
-
-
-for i in range(nb_j):
-    pseudo, nob = recevoirmsg().split()
-    joueurs[int(nob)] = {"cartes": {1: 1, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0}, "bonus": [False, False, False, False], "bonus actif": [False, False, False, False], "pseudo": pseudo, "argent": 3}
-print("all know\n")
-
-
-def affichage():
-    global carte_cible, mouse_pos, carte_cible_spe
+    global carte_cible, mouse_pos, carte_cible_spe, deltatime, urturn, bouton
 
     screen.fill((214, 249, 255))
+
+    if des1:
+        pygame.draw.rect(screen, (0, 0, 0), (300, 500, 100, 100), 10)
+        if des1 == 1 or des1 == 3 or des1 == 5:
+            pygame.draw.circle(screen, (0, 0, 0), (350, 550), 10)
+        if des1 == 2 or des1 == 3 or des1 == 4 or des1 == 5 or des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (325, 575), 10)
+        if des1 == 2 or des1 == 3 or des1 == 4 or des1 == 5 or des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (375, 525), 10)
+        if des1 == 4 or des1 == 5 or des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (375, 575), 10)
+        if des1 == 4 or des1 == 5 or des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (325, 525), 10)
+        if des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (375, 550), 10)
+        if des1 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (325, 550), 10)
+    if des2:
+        pygame.draw.rect(screen, (0, 0, 0), (450, 500, 100, 100), 10)
+        if des2 == 1 or des2 == 3 or des2 == 5:
+            pygame.draw.circle(screen, (0, 0, 0), (500, 550), 10)
+        if des2 == 2 or des2 == 3 or des2 == 4 or des2 == 5 or des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (475, 575), 10)
+        if des2 == 2 or des2 == 3 or des2 == 4 or des2 == 5 or des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (525, 525), 10)
+        if des2 == 4 or des2 == 5 or des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (525, 575), 10)
+        if des2 == 4 or des2 == 5 or des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (475, 525), 10)
+        if des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (525, 550), 10)
+        if des2 == 6:
+            pygame.draw.circle(screen, (0, 0, 0), (475, 550), 10)
+
+    bouton = 0
+    if stape == 0:
+        afficher_text("LANCER LES DES", (0, 0, 0), (300, 600), 30)
+        if 300 < mouse_pos[0] < 300 + 300 and 600 < mouse_pos[1] < 600 + 30:
+            bouton = 1
+    elif stape == 0.5:
+        pygame.draw.rect(screen, (100, 100, 100), (300, 600, 170, 30))
+        afficher_text("RELANCER", (0, 0, 0), (300, 600), 30)
+        if 300 < mouse_pos[0] < 300 + 170 and 600 < mouse_pos[1] < 600 + 30:
+            bouton = 1
+        pygame.draw.rect(screen, (150, 150, 150), (300, 630, 350, 30))
+        afficher_text("ACCEPTER LE LANCER", (0, 0, 0), (300, 630), 30)
+        if 300 < mouse_pos[0] < 300 + 350 and 630 < mouse_pos[1] < 630 + 30:
+            bouton = 2
+    elif stape == 1:
+        afficher_text("FINIR LE TOUR", (0, 0, 0), (300, 600), 30)
+        if 300 < mouse_pos[0] < 300 + 300 and 600 < mouse_pos[1] < 600 + 30:
+            bouton = 1
+    elif stape == 4:
+        afficher_text("LANCER LES DES", (0, 0, 0), (300, 600), 30)
+        if 300 < mouse_pos[0] < 300 + 300 and 600 < mouse_pos[1] < 600 + 30:
+            bouton = 1
+    elif stape == 5:
+        pygame.draw.rect(screen, (100, 100, 100), (300, 600, 170, 30))
+        afficher_text("ECHANGER", (0, 0, 0), (300, 600), 30)
+        if 300 < mouse_pos[0] < 300 + 200 and 600 < mouse_pos[1] < 600 + 30:
+            bouton = 1
+        pygame.draw.rect(screen, (150, 150, 150), (300, 630, 350, 30))
+        afficher_text("ARRETER", (0, 0, 0), (300, 630), 30)
+        if 300 < mouse_pos[0] < 300 + 200 and 630 < mouse_pos[1] < 630 + 30:
+            bouton = 2
 
     y = screen_center[1] - 300
     x = screen_center[0] - 250
@@ -119,7 +95,9 @@ def affichage():
     x = 200
     y = screen_size[1] - 300
     while index < 4:
-        if joueurs[autourde]["bonus"][index]:
+        if joueurs[nb]["bonus"][index]:
+            if joueurs[nb]["bonus actif"][index]:
+                pygame.draw.rect(screen, (0, 0, 0), (x - 5, y - 5, Images["cartes spe"][" face"][index].get_width() + 10, Images["cartes spe"][" face"][index].get_height() + 10), 5)
             screen.blit(Images["cartes spe"][" face"][index], (x, y))
         else:
             screen.blit(Images["cartes spe"][" dos"][index], (x, y))
@@ -129,140 +107,138 @@ def affichage():
         x += 100
         index += 1
     x = 200
-    y = screen_size[1] - 150
+    y += 150
     for nbimage in joueurs[nb]["cartes"]:
         if joueurs[nb]["cartes"][nbimage] != 0:
             for i in range(joueurs[nb]["cartes"][nbimage]):
                 screen.blit(Images["cartes"][nbimage], (x, y))
                 x += 5
             x += 90
+    x = 600
+    y = screen_size[1] - 200
+    nbpiece10 = int(joueurs[nb]["argent"] / 10)
+    nbpiece5 = int((joueurs[nb]["argent"] - nbpiece10 * 10) / 5)
+    nbpiece1 = int((joueurs[nb]["argent"] - nbpiece10 * 10) - nbpiece5 * 5)
+    for i in range(nbpiece10):
+        screen.blit(Images["piece"]["face"][2], (x, y))
+        x += 60
+    for i in range(nbpiece5):
+        screen.blit(Images["piece"]["face"][1], (x, y))
+        x += 60
+    for i in range(nbpiece1):
+        screen.blit(Images["piece"]["face"][0], (x, y))
+        x += 60
+    if nb_j == 2:
+        selct = nb + 1
+    else:
+        selct = nb + 2
+    if selct >= nb_j:
+        selct -= nb_j
+    x = screen_size[0] - 300
+    y = 150
+    index = 0
+    while index < 4:
+        if joueurs[selct]["bonus"][index]:
+            screen.blit(pygame.transform.rotate(Images["cartes spe"][" face"][index], 180), (x, y))
+        else:
+            screen.blit(pygame.transform.rotate(Images["cartes spe"][" dos"][index], 180), (x, y))
+        x -= 100
+        index += 1
+    x = screen_size[0] - 300
+    y = 0
+    for nbimage in joueurs[selct]["cartes"]:
+        if joueurs[selct]["cartes"][nbimage] != 0:
+            for i in range(joueurs[selct]["cartes"][nbimage]):
+                screen.blit(pygame.transform.rotate(Images["cartes"][nbimage], 180), (x, y))
+                x -= 5
+            x -= 90
+    x = screen_size[0] - 600
+    y = 200
+    nbpiece10 = int(joueurs[selct]["argent"] / 10)
+    nbpiece5 = int((joueurs[selct]["argent"] - nbpiece10 * 10) / 5)
+    nbpiece1 = int((joueurs[selct]["argent"] - nbpiece10 * 10) - nbpiece5 * 5)
+    for i in range(nbpiece10):
+        screen.blit(Images["piece"]["face"][2], (x, y))
+        x -= 60
+    for i in range(nbpiece5):
+        screen.blit(Images["piece"]["face"][1], (x, y))
+        x -= 60
+    for i in range(nbpiece1):
+        screen.blit(Images["piece"]["face"][0], (x, y))
+        x -= 60
+    if nb_j > 2:
+        selct = nb + 1
+        if selct >= nb_j:
+            selct -= nb_j
+        x = 150
+        y = 150
+        index = 0
+        while index < 4:
+            if joueurs[selct]["bonus"][index]:
+                screen.blit(pygame.transform.rotate(Images["cartes spe"][" face"][index], -90), (x, y))
+            else:
+                screen.blit(pygame.transform.rotate(Images["cartes spe"][" dos"][index], -90), (x, y))
+            y += 100
+            index += 1
+        x = 0
+        y = 150
+        for nbimage in joueurs[selct]["cartes"]:
+            if joueurs[selct]["cartes"][nbimage] != 0:
+                for i in range(joueurs[selct]["cartes"][nbimage]):
+                    screen.blit(pygame.transform.rotate(Images["cartes"][nbimage], -90), (x, y))
+                    y += 5
+                y += 90
+        afficher_text(str(joueurs[selct]["argent"]), (0, 0, 0), (200, 600), 30)
+        x = 200
+        y = 600
+        nbpiece10 = int(joueurs[selct]["argent"] / 10)
+        nbpiece5 = int((joueurs[selct]["argent"] - nbpiece10 * 10) / 5)
+        nbpiece1 = int((joueurs[selct]["argent"] - nbpiece10 * 10) - nbpiece5 * 5)
+        for i in range(nbpiece10):
+            screen.blit(Images["piece"]["face"][2], (x, y))
+            y += 60
+        for i in range(nbpiece5):
+            screen.blit(Images["piece"]["face"][1], (x, y))
+            y += 60
+        for i in range(nbpiece1):
+            screen.blit(Images["piece"]["face"][0], (x, y))
+            y += 60
+        if nb_j == 4:
+            selct = nb + 3
+            if selct >= nb_j:
+                selct -= nb_j
+            x = screen_size[0] - 300
+            y = screen_size[1] - 100
+            index = 0
+            while index < 4:
+                if joueurs[selct]["bonus"][index]:
+                    screen.blit(pygame.transform.rotate(Images["cartes spe"][" face"][index], 90), (x, y))
+                else:
+                    screen.blit(pygame.transform.rotate(Images["cartes spe"][" dos"][index], 90), (x, y))
+                y -= 100
+                index += 1
+            x += 150
+            y = screen_size[1] - 100
+            for nbimage in joueurs[selct]["cartes"]:
+                if joueurs[selct]["cartes"][nbimage] != 0:
+                    for i in range(joueurs[selct]["cartes"][nbimage]):
+                        screen.blit(pygame.transform.rotate(Images["cartes"][nbimage], 90), (x, y))
+                        y -= 5
+                    y -= 90
+            afficher_text(str(joueurs[selct]["argent"]), (0, 0, 0), (screen_size[0] - 300, screen_size[1] - 500), 30)
+            x = screen_size[0] - 300
+            y = screen_size[1] - 500
+            nbpiece10 = int(joueurs[selct]["argent"] / 10)
+            nbpiece5 = int((joueurs[selct]["argent"] - nbpiece10 * 10) / 5)
+            nbpiece1 = int((joueurs[selct]["argent"] - nbpiece10 * 10) - nbpiece5 * 5)
+            for i in range(nbpiece10):
+                screen.blit(Images["piece"]["face"][2], (x, y))
+                y -= 60
+            for i in range(nbpiece5):
+                screen.blit(Images["piece"]["face"][1], (x, y))
+                y -= 60
+            for i in range(nbpiece1):
+                screen.blit(Images["piece"]["face"][0], (x, y))
+                y -= 60
 
     pygame.display.flip()
-
-
-def input():
-    global des_lancer, des1, des2, endturn, pouvoir, nb_bonus_modif, good, lancer, relancer, carte_cible, carte_cible_spe, achat, id_carte_achat, achatpouvoir
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            quit()
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                if not carte_cible == 0:
-                    if not carte_cible_spe:
-                        if joueurs[autourde]["argent"] >= prix_cartes[carte_cible] and nb_cartes[carte_cible] > 0:
-                            achat = True
-                            joueurs[autourde]["argent"] += prix_cartes[carte_cible]
-                            nb_cartes[carte_cible] -= 1
-                            joueurs[autourde]["cartes"][carte_cible] += 1
-                            id_carte_achat = carte_cible
-                    else:
-                        carte_cible -= 1
-                        print(carte_cible)
-                        if joueurs[autourde]["argent"] >= prix_spe[carte_cible] and not joueurs[autourde]["bonus"][carte_cible]:
-                            achatpouvoir = True
-                            joueurs[autourde]["argent"] += prix_spe[carte_cible]
-                            joueurs[autourde]["bonus"][carte_cible] = True
-                            id_carte_achat = carte_cible
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                quit()
-            elif event.key == pygame.K_LEFT:
-                des_lancer = True
-                if not lancer:
-                    lancer = True
-                    des1 = randint(1, 6)
-                    if double_des:
-                        des2 = randint(1, 6)
-                    else:
-                        des2 = 0
-                elif not relancer and joueurs[nb]["bonus actif"][3]:
-                    relancer = True
-                    des1 = randint(1, 6)
-                    if double_des:
-                        des2 = randint(1, 6)
-                    else:
-                        des2 = 0
-            elif event.key == pygame.K_RIGHT:
-                endturn = True
-            elif event.key == pygame.K_KP_4:
-                good = True
-
-
-def inputnonjoueur():
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            quit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                quit()
-
-
-while True:
-    mouse_pos = pygame.mouse.get_pos()
-
-    deltatime = clock.tick() / 1000
-
-    affichage()
-
-    if autourde != nb:
-        inputnonjoueur()
-        message = recevoirmsg()
-        for msg in message.split("/"):
-            if not msg == "non" and not msg == "":
-                action, valeur = msg.split(":")
-                if action == "des lancer":
-                    des1, des2 = valeur.split()
-                    des1 = int(des1)
-                    des2 = int(des2)
-                elif action == "bonus":
-                    joueurs[autourde]["bonus actif"][int(valeur)] = not joueurs[autourde]["bonus actif"][int(valeur)]
-                elif action == "achat bonus":
-                    joueurs[autourde]["bonus"][int(valeur)] = True
-                    joueurs[autourde]["argent"] += prix_spe[int(valeur)]
-                elif action == "achat":
-                    nb_cartes[int(valeur)] -= 1
-                    joueurs[autourde]["cartes"][int(valeur)] += 1
-                elif action == "end":
-                    autourde += 1
-                    if autourde >= nb_j:
-                        autourde = 0
-                    if autourde == nb:
-                        des_lancer = False
-                        achat = False
-                        endturn = False
-                        pouvoir = False
-                        good = False
-    else:
-        input()
-        if des_lancer or achat or endturn or pouvoir:
-            if des_lancer:
-                sendmsg("des lancer:" + str(des1) + " " + str(des2))
-                des_lancer = False
-            elif pouvoir:
-                sendmsg("bonus:" + str(nb_bonus_modif))
-                pouvoir = False
-            elif achatpouvoir:
-                sendmsg("achat bonus:" + str(nb_bonus_modif))
-                pouvoir = False
-            elif good:
-                sendmsg("good:")
-                good = False
-            elif achat:
-                sendmsg("achat:" + str(id_carte_achat))
-                achat = False
-            elif endturn:
-                if not joueurs[nb]["bonus actif"][2]:
-                    sendmsg("end:")
-                    autourde += 1
-                    if autourde >= nb_j:
-                        autourde = 0
-        else:
-            sendmsg("non")
-
-        else:
-            sendmsg("non")
